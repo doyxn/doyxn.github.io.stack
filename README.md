@@ -1,2 +1,2 @@
 # doyxn.github.io.stack
-"Writings" of doyxn.github.io/#/writing
+blog markdown files of doyxn.github.io/#/writing
