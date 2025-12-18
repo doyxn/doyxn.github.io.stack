@@ -1,0 +1,19 @@
+name: Notify Portfolio Repo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger portfolio sync
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_pat }}" \
+            https://api.github.com/repos/doyxn/doyxn.github.io/actions/workflows/sync-blogs.yml/dispatches \
+            -d '{"ref":"main"}'
