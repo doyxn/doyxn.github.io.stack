@@ -3,7 +3,9 @@
 import fs from "fs";
 import path from "path";
 
-const CONTENT_DIR = path.resolve("content/blogs");
+
+const CONTENT_DIR = path.resolve("./blogs");
+const FALLBACK_DIR = path.resolve("."); // project root
 const OUTPUT_DIR = path.resolve(".generated/blogs");
 
 /**
@@ -24,13 +26,30 @@ function ensureDir(dir) {
   }
 }
 
+
+function getMarkdownFiles(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter(f => f.endsWith(".md"));
+}
+
 function convertMarkdownFiles() {
   ensureDir(OUTPUT_DIR);
 
-  const files = fs.readdirSync(CONTENT_DIR).filter(f => f.endsWith(".md"));
+  let files = getMarkdownFiles(CONTENT_DIR);
+  let inputDir = CONTENT_DIR;
+
+  // Fallback: if no files in blogs, look in project root
+  if (files.length === 0) {
+    files = getMarkdownFiles(FALLBACK_DIR);
+    inputDir = FALLBACK_DIR;
+    if (files.length === 0) {
+      console.warn("No markdown files found in blogs or project root.");
+      return;
+    }
+  }
 
   for (const file of files) {
-    const inputPath = path.join(CONTENT_DIR, file);
+    const inputPath = path.join(inputDir, file);
     const outputPath = path.join(
       OUTPUT_DIR,
       file.replace(/\.md$/, ".js")
