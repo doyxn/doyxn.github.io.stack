@@ -1,46 +1,57 @@
+#!/usr/bin/env node
+
 import fs from "fs";
 import path from "path";
-import matter from "gray-matter";
-import { marked } from "marked";
 
-const inputFile = process.argv[2];
-const outputDir = process.argv[3] || "src/pages";
+const CONTENT_DIR = path.resolve("content/blogs");
+const OUTPUT_DIR = path.resolve(".generated/blogs");
 
-if (!inputFile) {
-  console.error("❌ Please provide a markdown file");
-  process.exit(1);
+/**
+ * Convert a filename to PascalCase for React components
+ * example: "my-first-post.md" → "MyFirstPost"
+ */
+function toComponentName(filename) {
+  return filename
+    .replace(/\.md$/, "")
+    .split(/[-_]/g)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("");
 }
 
-const markdown = fs.readFileSync(inputFile, "utf-8");
-const { content, data } = matter(markdown);
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
 
+function convertMarkdownFiles() {
+  ensureDir(OUTPUT_DIR);
 
-const html = marked.parse(content);
+  const files = fs.readdirSync(CONTENT_DIR).filter(f => f.endsWith(".md"));
 
-// Create React component name
-const fileName = path.basename(inputFile, ".md");
-const componentName =
-  fileName.charAt(0).toUpperCase() + fileName.slice(1);
+  for (const file of files) {
+    const inputPath = path.join(CONTENT_DIR, file);
+    const outputPath = path.join(
+      OUTPUT_DIR,
+      file.replace(/\.md$/, ".js")
+    );
 
-// React page template
-const reactPage = `
-import React from "react";
+    const componentName = toComponentName(file);
+    const markdown = fs.readFileSync(inputPath, "utf8");
+
+    const jsFile = `import React from "react";
+import ReactMarkdown from "react-markdown";
+
+const markdown = ${JSON.stringify(markdown)};
 
 export default function ${componentName}() {
-  return (
-    <main className="markdown-page">
-      <h1>${data.title || componentName}</h1>
-      <div
-        dangerouslySetInnerHTML={{ __html: \`${html}\` }}
-      />
-    </main>
-  );
+  return <ReactMarkdown>{markdown}</ReactMarkdown>;
 }
 `;
 
-fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(outputPath, jsFile);
+    console.log(`✓ Generated ${outputPath}`);
+  }
+}
 
-const outputPath = path.join(outputDir, `${componentName}.jsx`);
-fs.writeFileSync(outputPath, reactPage);
-
-console.log(`Generated ${outputPath}`);
+convertMarkdownFiles();

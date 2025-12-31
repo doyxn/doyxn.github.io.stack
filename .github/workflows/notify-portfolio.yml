@@ -1,19 +1,32 @@
-name: Notify Portfolio Repo
+name: Sync Markdown to Portfolio
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "**/*.md"
       - "images/**"
 
 jobs:
-  notify:
+  build-and-sync:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger portfolio sync
+      - name: Checkout content repo
+        uses: actions/checkout@v4
+
+      - name: Convert markdown to React component
+        run: |
+          node scripts/md-to-react.js
+
+      - name: Commit generated JS
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Generate ReactMarkdown components" || echo "No changes"
+
+      - name: Push or trigger portfolio repo
         run: |
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
