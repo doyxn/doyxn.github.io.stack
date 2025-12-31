@@ -1,4 +1,4 @@
-An h1 header
+An h1 head
 ============
 
 Paragraphs are separated by a blank line.
