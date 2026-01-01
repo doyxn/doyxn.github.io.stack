@@ -2,5 +2,9 @@
   "type": "module",
   "dependencies": {
     "react-markdown": "^10.1.0"
+  },
+  "scripts": {
+    "generate:blogs": "node scripts/mdtoreact.js"
   }
+  
 }
