@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
+import { create } from "domain";
 import fs from "fs";
 import path from "path";
+import matter from "gray-matter";
 
 
 const CONTENT_DIR = path.resolve("./blogs");
@@ -56,7 +58,8 @@ function convertMarkdownFiles() {
     );
 
     const componentName = toComponentName(file);
-    const markdown = fs.readFileSync(inputPath, "utf8");
+    const raw = fs.readFileSync(inputPath, "utf8");
+    const { content: markdown } = matter(raw);
 
     const jsFile = `import React from "react";
 import ReactMarkdown from "react-markdown";
@@ -74,3 +77,52 @@ export default function ${componentName}() {
 }
 
 convertMarkdownFiles();
+
+
+function createIndexFile() {
+  ensureDir(OUTPUT_DIR);
+
+  let files = getMarkdownFiles(CONTENT_DIR);
+  let inputDir = CONTENT_DIR;
+
+  // Fallback: if no files in blogs, look in project root
+  if (files.length === 0) {
+    files = getMarkdownFiles(FALLBACK_DIR);
+    inputDir = FALLBACK_DIR;
+    if (files.length === 0) {
+      console.warn("No markdown files found in blogs or project root.");
+      return;
+    }
+  }
+  // Normalize slugs (filenames without .md)
+  const slugs = files.map(f => f.replace(/\.md$/, "")).sort();
+
+  // Build import lines and blog entries
+  const imports = slugs
+    .map(slug => {
+      const comp = toComponentName(slug + ".md");
+      return `import ${comp} from "./${slug}";`;
+    })
+    .join("\n");
+
+  const entries = slugs
+    .map(slug => {
+      const comp = toComponentName(slug + ".md");
+      const inputPath = path.join(inputDir, slug + ".md");
+      const raw = fs.readFileSync(inputPath, "utf8");
+      const { data } = matter(raw);
+      const title = data.title || slug.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      const description = data.description || "";
+      const tags = Array.isArray(data.tags) ? data.tags : (typeof data.tags === "string" ? [data.tags] : []);
+      return `  "${slug}": {\n    title: ${JSON.stringify(title)},\n    description: ${JSON.stringify(description)},\n    tags: ${JSON.stringify(tags)},\n    component: ${comp},\n  },`;
+    })
+    .join("\n\n");
+
+  const indexJs = `${imports}\n\nexport const blogs = {\n${entries}\n};\n`;
+
+  const outPath = path.join(OUTPUT_DIR, "index.js");
+  fs.writeFileSync(outPath, indexJs);
+  console.log(`✓ Generated ${outPath}`);
+  
+}
+createIndexFile();

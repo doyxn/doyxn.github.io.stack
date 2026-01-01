@@ -1,7 +1,8 @@
 {
   "type": "module",
   "dependencies": {
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "gray-matter": "^4.0.3"
   },
   "scripts": {
     "generate:blogs": "node scripts/mdtoreact.js"
